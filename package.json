@@ -1,0 +1,20 @@
+{
+  "name": "bitburner-go",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Go solver for bitburner",
+  "main": "main.js",
+  "scripts": {
+    "test": "ava"
+  },
+  "ava": {"files": ["*.test.js"]},
+  "keywords": [
+    "go",
+    "bitburner"
+  ],
+  "author": "Burner",
+  "license": "ISC",
+  "devDependencies": {
+    "ava": "^6.2.0"
+  }
+}
