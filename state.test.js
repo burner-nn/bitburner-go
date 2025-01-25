@@ -18,6 +18,22 @@ test("Making state", t => {
     t.deepEqual(state.chains.opponent[0].points, [3, 4]);
 });
 
+test("State to string", t => {
+    let board = Board.fromImage(
+	["W_W",
+	 "W_B",
+	 "B_X"], "W", true);
+    let state = State.fromBoard(board);
+
+    t.deepEqual(state.toStrings(),
+		["W (pass)",
+		 "W_W   N: <C0 _ [(1,0),(1,1),(1,2)] [P:[(0,0),(2,0),(0,1)],O:[(2,1),(0,2)]]>",
+		 "W_B   P: <C0 W [(0,0),(0,1)] [(1,0),(1,1)]>",
+		 "B_X      <C1 W [(2,0)] [(1,0)]>",
+		 "      O: <C0 B [(2,1)] [(1,1)]>",
+		 "         <C1 B [(0,2)] [(1,2)]>"]);
+});
+
 test("Board scoring", t => {
     let board = Board.fromImage(["X__", "WWW", "__B", "BB_"], "W", false);
     let state = State.fromBoard(board, null);
@@ -47,18 +63,123 @@ test("Chain owned scoring", t=> {
     t.deepEqual(state.chainScore(), [3, 3]);
 });
 
-// depth adjusting scores
-// adjustment becomes smaller as board fills
+test("Proper eyes", t => {
+    let board = Board.fromImage([
+	"B_B",
+	"WX_"], "B", true);
+    let state = State.fromBoard(board, null);
 
-// valid moves
-// pass is a move
-// dead move that makes capture is valid
-// dead move that extends dead chain is fine
+    t.deepEqual(state.chainScore(), [0.75, 0.25]);
+});
+				
 
-// making boards for moves
-// capture boards
+test("Depth adjustment", t => {
+    let board = Board.fromImage([
+	"_B_",
+	"_W_",
+	"B__"], "W", false);
+    let state = State.fromBoard(board, board.depthMap());
+    t.is(state.depthScale, 6 / 9);
+
+    t.deepEqual(state.chainScore(), [0.75, 0.5]);
+    
+});
+
+test("Valid moves", t => {
+    let board = Board.fromImage([
+	"X__X",
+	"BBWW",
+	"____"], "W", false);
+    let state = State.fromBoard(board, board.depthMap());
+
+    t.deepEqual(Array.from(state.validMoves().keys()), [null, 1, 2, 8, 9, 10, 11]);
+});
+
+test("No suicide", t => {
+    let board = Board.fromImage([
+	"_WW",
+	"BBB",
+	"_W_"], "W", false);
+    let state = State.fromBoard(board);
+
+    t.deepEqual(Array.from(state.validMoves().keys()), [null, 6, 8]);
+});
+
+test("Killing are fine", t => {
+    let board = Board.fromImage([
+	"W_X",
+	"BBB"], "B", false);
+    let state = State.fromBoard(board);
+
+    t.deepEqual(Array.from(state.validMoves().keys()), [null, 1]);
+});
+
+test("Making pass", t => {
+    let board = Board.fromImage(["___"], "B", false);
+    let state = State.fromBoard(board);
+
+    let moved = state.makeMove(null);
+    t.deepEqual(state.localHistory, new Set());
+
+    t.is(moved.depthMap, state.depthMap);
+    t.deepEqual(moved.globalHistory, new Set());
+    t.deepEqual(moved.localHistory, new Set([moved.board.code()]));
+    t.deepEqual(moved.board.toImage(), board.toImage());
+    t.is(moved.board.player, 2);
+    t.is(moved.board.isPass, true);
+});
+
+test("Making move", t => {
+    let board = Board.fromImage([
+	"___W",
+	"BBBB"], "W", false);
+    let state = State.fromBoard(board);
+
+    let moved = state.makeMove(1);
+    t.deepEqual(moved.board.toImage(), ["_W_W", "BBBB"]);
+    t.is(moved.board.player, 1);
+    t.is(moved.board.isPass, false);
+
+    t.is(moved.chains.neutral.length, 2);
+    t.deepEqual(moved.chains.neutral[0].points, [0]);
+    t.deepEqual(moved.chains.neutral[1].points, [2]);
+
+    t.is(moved.chains.opponent.length, 2);
+    t.deepEqual(moved.chains.opponent[0].points, [1]);
+    t.deepEqual(moved.chains.opponent[1].points, [3]);    
+});
+
+test("Making capture board", t => {
+    let board = Board.fromImage([
+	"W_",
+	"BB"], "W", false);
+    let state = State.fromBoard(board);
+
+    let moved = state.makeMove(1);
+    t.deepEqual(moved.board.toImage(), ["WW", "__"]);
+    t.is(moved.board.player, 1);
+    t.is(moved.board.isPass, false);
+
+    t.is(moved.chains.neutral.length, 1);
+    t.deepEqual(moved.chains.neutral[0].points, [2, 3]);
+
+    t.is(moved.chains.player.length, 0);
+
+    t.is(moved.chains.opponent.length, 1);
+    t.deepEqual(moved.chains.opponent[0].points, [0, 1]);
+});
+
+test("Can't repeat states", t => {
+    let board = Board.fromImage(["__"], "W", false);
+    let state = State.fromBoard(board);
+
+    state = state.makeMove(0);
+    state = state.makeMove(1);
+
+    t.deepEqual(Array.from(state.validMoves().keys()), [null]);
+});
 
 // strategies decide plays
 // both players get a strategy
 
-// game 
+// game

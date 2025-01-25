@@ -64,18 +64,27 @@ export class Board
 	return result;
     }
 
+    code()
+    {
+	let result = BigInt(0);
+	let shift = 0;
+	for(let value of this.data)
+	{
+	    if(value != 0)
+		result += BigInt(value) << BigInt(shift);
+	    shift += 2;
+	}
+
+	return result;
+    }
+
     pack()
     {
 	let result = BigInt(this.player - 1);
 	if(this.isPass)
 	    result += BigInt(2);
-
-	let shift = 2;
-	for(let value of this.data)
-	{
-	    result += (BigInt(1) << BigInt(shift)) * BigInt(value);
-	    shift += 2;
-	}
+	
+	result += this.code() << BigInt(2);
 
 	return result;
     }
@@ -222,6 +231,11 @@ export class Board
 		if(depths[y][x] >= 0)
 		    depths[y][x] /= (depth - 1);
 
-	return depths;
+	let result = new Array();
+	for(let y=0;y<this.height;y++)
+	    for(let x=0;x<this.width;x++)
+		result.push(depths[y][x]);
+
+	return result;
     }
 }
