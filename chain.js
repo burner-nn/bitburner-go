@@ -17,8 +17,8 @@ class BasicChain
 
     toString()
     {
-	let points = "[" + this.points.map(p => this.board.pointToString(p)).join(",") + "]";
-	let connections = "[" + this.connectionsToString() + "]";
+	let points = "PS:" + this.points.length;
+	let connections = "CN:" + this.connectionsToString();
 
 	let name = Board.cellToString(this.color);
 	return "<C" + this.id + " "  + name + " " + points + " " + connections + ">";
@@ -86,10 +86,10 @@ export class NeutralChain extends BasicChain
 
     connectionsToString()
     {
-	let player = "P:[" + this.playerConnections.map(p => this.board.pointToString(p)).join(",") + "]";
-	let opp = "O:[" + this.opponentConnections.map(p => this.board.pointToString(p)).join(",") + "]";
+	let player = "P:" + this.playerConnections.length;
+	let opp = "O:" + this.opponentConnections.length;
 
-	return player + "," + opp;
+	return "[" + player + "," + opp + "]";
     }
 }
 
@@ -110,7 +110,7 @@ export class Chain extends BasicChain
 
     connectionsToString()
     {
-	return this.connections.map(p => this.board.pointToString(p)).join(",");
+	return this.connections.length;
     }
 
     static #rearrange(arr)

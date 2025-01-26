@@ -11,11 +11,27 @@ export class State
 	this.localHistory = localHistory;
 	this.globalHistory = globalHistory;
 
-	let freeCells = 0;
-	for(let c of this.chains.neutral)
-	    freeCells += c.points.length;
+	this.playerOwned = new Set();
+	this.oppOwned = new Set();
 
-	this.depthScale = freeCells / (board.width * board.height);
+	for(let chain of this.chains.neutral)
+	{
+	    if(chain.playerConnections.length > 0 && chain.opponentConnections.length == 0)
+		this.playerOwned.add(chain);
+	    else if(chain.opponentConnections.length > 0 && chain.playerConnections.length == 0)
+		this.oppOwned.add(chain);
+	}
+
+	this.#markEyes(this.playerOwned, x => x.playerConnections);
+	this.#markEyes(this.oppOwned, x => x.opponentConnections);
+
+	let freeCells = 0;
+	for(let c of this.chains.neutral) {
+	    if(!c.isEye)
+		freeCells += c.points.length;
+	}
+
+	this.depthScale = freeCells / (this.board.width * this.board.height);
     }
 
     #chainsToString(name, chains)
@@ -86,10 +102,10 @@ export class State
     {
 	let result = [0, 0];
 	for(let chain of this.chains.player)
-	    result[0] += this.cellArrayScore(chain.points);
+	    result[0] += chain.points.length;
 
 	for(let chain of this.chains.opponent)
-	    result[1] += this.cellArrayScore(chain.points);
+	    result[1] += chain.points.length;
 
 	return result;
     }
@@ -109,14 +125,18 @@ export class State
 	return result;
     }
 
-    #neutralScore(owned, connections)
+    #markEyes(owned, connections)
     {
 	let conns = new Map();
 	for(let chain of owned)
 	{
 	    let playerChains = new Set();
 	    for(let c of connections(chain))
-		playerChains.add(this.chains.cells[c].id);
+	    {
+		let playerChain = this.chains.cells[c];
+		if(chain.points.length <= 2 || playerChain.points.length >= 2)
+		    playerChains.add(playerChain.id);
+	    }
 
 	    let key = Array.from(playerChains).sort().join(",");
 	    if(conns.has(key))
@@ -131,7 +151,10 @@ export class State
 		for(let c of chains)
 		    c.isEye = true;
 	}
+    }
 
+    #neutralScore(owned, connections)
+    {
 	let result = 0;
 	for(let c of owned)
 	    if(c.isEye)
@@ -152,12 +175,17 @@ export class State
 	let multiplier = 1;
 	if(connected.size < 2)
 	{
-	    switch(chain.connections.length)
+	    if(chain.connections.length < 2)
+		multiplier = 0.25;
+	    else
 	    {
-		case 0:
-		case 1: multiplier = 0.25; break;
-		case 2: multiplier = 0.5; break;
-		default: multiplier = 0.75; break;
+		multiplier = 0;
+		let additive = 0.5;
+		for(let i=2;i<=chain.connections.length;i++)
+		{
+		    multiplier += additive;
+		    additive /= 2;
+		}
 	    }
 	}
 
@@ -167,23 +195,14 @@ export class State
     chainScore()
     {
 	let result = [0, 0];
-	let playerOwned = new Set();
-	let oppOwned = new Set();
-	for(let chain of this.chains.neutral)
-	{
-	    if(chain.playerConnections.length > 0 && chain.opponentConnections.length == 0)
-		playerOwned.add(chain);
-	    else if(chain.opponentConnections.length > 0 && chain.playerConnections.length == 0)
-		oppOwned.add(chain);
-	}
 
-	result[0] += this.#neutralScore(playerOwned, x => x.playerConnections);
-	result[1] += this.#neutralScore(oppOwned, x => x.opponentConnections);
+	result[0] += this.#neutralScore(this.playerOwned, x => x.playerConnections);
+	result[1] += this.#neutralScore(this.oppOwned, x => x.opponentConnections);
 
 	for(let chain of this.chains.player)
-	    result[0] += this.#chainScore(chain, playerOwned);
+	    result[0] += this.#chainScore(chain, this.playerOwned);
 	for(let chain of this.chains.opponent)
-	    result[1] += this.#chainScore(chain, oppOwned);
+	    result[1] += this.#chainScore(chain, this.oppOwned);
 
 	return result;
     }
@@ -193,9 +212,9 @@ export class State
 	let newBoard = new Board(new Int8Array(this.board.data.length), this.board.width, this.board.height, this.board.opponent, move == null);
 	for(let i=0;i<this.board.data.length;i++){
 	    if(this.board.data[i] == 3)
-		newBoard[i] = 3;
+		newBoard.data[i] = 3;
 	    else
-		newBoard[i] = 0;
+		newBoard.data[i] = 0;
 	}
 
 	for(let c of this.chains.player)
@@ -211,7 +230,9 @@ export class State
 
 	let newHistory = new Set(this.localHistory);
 	newHistory.add(newBoard.code());
-	return State.fromBoard(newBoard, this.depthMap, newHistory, this.globalHistory);
+
+	let result = State.fromBoard(newBoard, this.depthMap, newHistory, this.globalHistory);
+	return result;
     }
 
     validMoves()

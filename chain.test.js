@@ -18,7 +18,7 @@ test("chain to string", t => {
     chain.points = [1, 4, 10, 500, 2000];
     chain.connections = [1, 10, 100, 500];
 
-    t.is(chain.toString(), "<C42 B [(1,0),(0,1),(2,2),(0,125),(0,500)] [(1,0),(2,2),(0,25),(0,125)]>");
+    t.is(chain.toString(), "<C42 B PS:5 CN:4>");
 });
 
 test("neutral chain", t => {
@@ -27,7 +27,7 @@ test("neutral chain", t => {
     chain.playerConnections=[1, 3, 5];
     chain.opponentConnections = [4, 6];
 
-    t.is(chain.toString(), "<C12 _ [(0,1)] [P:[(1,0),(1,1),(1,2)],O:[(0,2),(0,3)]]>");
+    t.is(chain.toString(), "<C12 _ PS:1 CN:[P:3,O:2]>");
 });
 
 test("chains from board", t => {

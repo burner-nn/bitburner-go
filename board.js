@@ -41,7 +41,7 @@ export class Board
 		case Board.Empty: value = 0; break;
 		case Board.Black: value = 1; break;
 		case Board.White: value = 2; break;
-		default: throw Exception("Wrong board cell " + image[y][x]);
+		default: throw Error("Wrong board cell " + image[y][x]);
 	    }
 
 	    data[y * image[0].length + x] = value;
@@ -170,71 +170,150 @@ export class Board
 	return newQueue;
     }
 
-    depthMap() {
-	let depths = [];
-	let queue = [];
+    #getDiameter(px, py)
+    {
+	let result = 0;
+
+	let visited = new Set();
+	let queue = [[px, py]];
+
+	while(queue.length > 0)
+	{
+	    let newQueue = [];
+	    let updated = false;
+	    
+	    for(let [x, y] of queue)
+	    {
+		let id = this.width * y + x;
+		if(visited.has(id))
+		    continue;
+
+		visited.add(id);
+		updated = true;
+		
+		if(x > 0 && this.data[y * this.width + x - 1] != 3)
+		    newQueue.push([x - 1, y]);
+		if(x < this.width - 1 && this.data[y * this.width + x + 1] != 3)
+		    newQueue.push([x + 1, y]);
+		if(y > 0 && this.data[(y - 1) * this.width + x] != 3)
+		    newQueue.push([x, y - 1]);
+		if(y < this.height - 1 && this.data[(y + 1) * this.width + x] != 3)
+		    newQueue.push([x, y + 1]);
+	    }
+
+	    queue = newQueue;
+	    if(updated)
+		result++;
+	}
+
+	return result - 1;
+    }
+
+    diameterMap()
+    {
+	let result = new Array(this.data.length);
 	for(let y=0;y<this.height;y++)
 	{
-	    depths.push(new Array(this.width));
 	    for(let x=0;x<this.width;x++)
 	    {
-		let depth = -1;
-		if(x == 0
-		   || x == this.width - 1
-		   || y == 0
-		   || y == this.height - 1
-		   || this.getValue(y * this.width + x - 1) == 3
-		   || this.getValue(y * this.width + x + 1) == 3
-		   || this.getValue((y + 1) * this.width + x) == 3
-		   || this.getValue((y - 1) * this.width + x) == 3)
+		let id = y * this.width + x;
+		if(this.data[id] == 3)
 		{
-		    if(this.getValue(y * this.width + x) != 3)
-		    {
-			queue.push([x, y]);
-			depth = 0;
-		    }
+		    result[id] = -1;
+		    continue;
 		}
 
-		depths[y][x] = depth;
+		result[id] = this.#getDiameter(x, y);
 	    }
 	}
 
-	let depth = 0;
+	return result;
+    }
+
+
+    #getAverageHeat(px, py)
+    {
+	let sum = 0;
+	let points = 0;
+	let distance = 0;
+
+	let visited = new Set();
+	let queue = [[px, py]];
+
 	while(queue.length > 0)
 	{
-	    depth++;
-	    queue = this.#expandDepthMap(depths, queue, depth);
-	}
-
-	queue = [];
-	for(let y=0;y<this.height;y++)
-	    for(let x=0;x<this.width;x++)
-	{
-	    if(depths[y][x] == depth - 1)
+	    let newQueue = [];
+	    
+	    for(let [x, y] of queue)
 	    {
-		depths[y][x] = 0;
-		queue.push([x, y]);
+		let id = this.width * y + x;
+		if(visited.has(id))
+		    continue;
+
+		visited.add(id);
+		sum += distance;
+		points++;
+		
+		if(x > 0 && this.data[y * this.width + x - 1] != 3)
+		    newQueue.push([x - 1, y]);
+		if(x < this.width - 1 && this.data[y * this.width + x + 1] != 3)
+		    newQueue.push([x + 1, y]);
+		if(y > 0 && this.data[(y - 1) * this.width + x] != 3)
+		    newQueue.push([x, y - 1]);
+		if(y < this.height - 1 && this.data[(y + 1) * this.width + x] != 3)
+		    newQueue.push([x, y + 1]);
 	    }
-	    else
-		depths[y][x] = -1;
+
+	    queue = newQueue;
+	    distance++;
 	}
 
-	depth = 0;
-	while(queue.length > 0)
+	return Math.floor(sum / points * 100) / 100;
+    }
+
+    heatMap()
+    {
+	let result = new Array(this.data.length);
+	for(let y=0;y<this.height;y++)
 	{
-	    depth++;
-	    queue = this.#expandDepthMap(depths, queue, depth);
+	    for(let x=0;x<this.width;x++)
+	    {
+		let id = y * this.width + x;
+		if(this.data[id] == 3)
+		{
+		    result[id] = -1;
+		    continue;
+		}
+
+                result[id] = this.#getAverageHeat(x, y);
+	    }
 	}
 
-	for(let y=0;y<this.height;y++)
-	    for(let x=0;x<this.width;x++)
-		if(depths[y][x] >= 0)
-		    depths[y][x] /= (depth - 1);
+	return result;
+    }
 
-	let result = new Array();
-	for(let y=0;y<this.height;y++)
-	    for(let x=0;x<this.width;x++)
-		result.push(depths[y][x]);
+    depthMap()
+    {
+	let result = this.heatMap();
+	let minValue = null;
+	let maxValue = null;
+	for(let i=0;i<result.length;i++)
+	{
+	    if(result[i] == -1)
+		continue;
+
+	    if(minValue == null || minValue > result[i])
+		minValue = result[i];
+	    if(maxValue == null || maxValue < result[i])
+		maxValue = result[i];
+	}
+
+	for(let i=0;i<result.length;i++)
+	{
+	    if(result[i] == -1)
+		continue;
+	    result[i] = (result[i] - minValue) / (maxValue - minValue);
+	}
 
 	return result;
     }

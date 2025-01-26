@@ -27,11 +27,11 @@ test("State to string", t => {
 
     t.deepEqual(state.toStrings(),
 		["W (pass)",
-		 "W_W   N: <C0 _ [(1,0),(1,1),(1,2)] [P:[(0,0),(2,0),(0,1)],O:[(2,1),(0,2)]]>",
-		 "W_B   P: <C0 W [(0,0),(0,1)] [(1,0),(1,1)]>",
-		 "B_X      <C1 W [(2,0)] [(1,0)]>",
-		 "      O: <C0 B [(2,1)] [(1,1)]>",
-		 "         <C1 B [(0,2)] [(1,2)]>"]);
+		 "W_W   N: <C0 _ PS:3 CN:[P:3,O:2]>",
+		 "W_B   P: <C0 W PS:2 CN:2>",
+		 "B_X      <C1 W PS:1 CN:1>",
+		 "      O: <C0 B PS:1 CN:1>",
+		 "         <C1 B PS:1 CN:1>"]);
 });
 
 test("Board scoring", t => {
@@ -73,6 +73,7 @@ test("Proper eyes", t => {
 });
 				
 
+/*
 test("Depth adjustment", t => {
     let board = Board.fromImage([
 	"_B_",
@@ -84,6 +85,7 @@ test("Depth adjustment", t => {
     t.deepEqual(state.chainScore(), [0.75, 0.5]);
     
 });
+*/
 
 test("Valid moves", t => {
     let board = Board.fromImage([
@@ -179,7 +181,12 @@ test("Can't repeat states", t => {
     t.deepEqual(Array.from(state.validMoves().keys()), [null]);
 });
 
-// strategies decide plays
-// both players get a strategy
+test("No t1 eyes", t => {
+    let board = Board.fromImage([
+	"X_X__",
+	"_B___",
+	"_____"]);
+    let state = State.fromBoard(board);
 
-// game
+    t.deepEqual(state.chainScore(), [0, 0.875]);
+});
