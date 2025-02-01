@@ -46,20 +46,18 @@ class OppMoveStrategy
 
 export class Game
 {
-    constructor(state, depthMap, history)
+    constructor(state, history)
     {
 	this.history = history;
 	this.state = state;
-	this.depthMap = depthMap;
 
 	this.blackStrategy = new ValidMoveStrategy();
 	this.whiteStrategy = new OppMoveStrategy();
     }
 
     static fromBoard(board) {
-	let depthMap = board.depthMap();
 	let history = new Set([board.code()]);
-	return new Game(State.fromBoard(board, depthMap, new Set(), history), depthMap, history);
+	return new Game(State.fromBoard(board, new Set(), history), history);
     }
 
     addHistory(board) { this.history.add(board.code()); }

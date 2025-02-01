@@ -3,19 +3,21 @@ import { Chain } from './chain.js';
 
 export class State
 {
-    constructor(board, chains, depthMap, localHistory, globalHistory)
+    constructor(board, chains, localHistory, globalHistory)
     {
 	this.board = board;
 	this.chains = chains;
-	this.depthMap = depthMap;
 	this.localHistory = localHistory;
 	this.globalHistory = globalHistory;
 
 	this.playerOwned = new Set();
 	this.oppOwned = new Set();
 
+	this.freeCells = 0;
 	for(let chain of this.chains.neutral)
 	{
+	    this.freeCells += chain.points.length;
+
 	    if(chain.playerConnections.length > 0 && chain.opponentConnections.length == 0)
 		this.playerOwned.add(chain);
 	    else if(chain.opponentConnections.length > 0 && chain.playerConnections.length == 0)
@@ -24,14 +26,6 @@ export class State
 
 	this.#markEyes(this.playerOwned, x => x.playerConnections);
 	this.#markEyes(this.oppOwned, x => x.opponentConnections);
-
-	let freeCells = 0;
-	for(let c of this.chains.neutral) {
-	    if(!c.isEye)
-		freeCells += c.points.length;
-	}
-
-	this.depthScale = freeCells / (this.board.width * this.board.height);
     }
 
     #chainsToString(name, chains)
@@ -77,25 +71,9 @@ export class State
 	return result;
     }
 
-    static fromBoard(board, depthMap, localHistory=new Set(), globalHistory=new Set())
+    static fromBoard(board, localHistory=new Set(), globalHistory=new Set())
     {
-	return new State(board, Chain.fromBoard(board), depthMap, localHistory, globalHistory);
-    }
-
-    cellScore(cell) { 
-	let multiplier = 1;
-	if(this.depthMap != null)
-	    multiplier = (1 - this.depthMap[cell] * this.depthScale);
-
-	return multiplier;
-    }
-    cellArrayScore(arr) {
-	let result = 0;
-	for(let cell of arr)
-	{
-	    result += this.cellScore(cell);
-	}
-	return result;
+	return new State(board, Chain.fromBoard(board), localHistory, globalHistory);
     }
 
     pieceScore()
@@ -117,9 +95,9 @@ export class State
 	for(let c of this.chains.neutral)
 	{
 	    if(c.playerConnections.length > 0 && c.opponentConnections.length == 0)
-		result[0] += this.cellArrayScore(c.points);
+		result[0] += c.points.length;
 	    else if(c.playerConnections.length == 0 && c.opponentConnections.length > 0)
-		result[1] += this.cellArrayScore(c.points);
+		result[1] += c.points.length;
 	}
 
 	return result;
@@ -158,7 +136,7 @@ export class State
 	let result = 0;
 	for(let c of owned)
 	    if(c.isEye)
-		result += this.cellArrayScore(c.points);
+		result += c.points.length;
 
 	return result;
     }
@@ -189,7 +167,15 @@ export class State
 	    }
 	}
 
-	return this.cellArrayScore(chain.points) * multiplier;
+	let result = chain.points.length * multiplier;
+
+	if(this.freeCells > 0)
+	{
+	    let [avgReach, reachable] = chain.reach();
+	    return (1 - avgReach) * (reachable / this.freeCells) * result;
+	}
+
+	return result;
     }
 
     chainScore()
@@ -231,7 +217,7 @@ export class State
 	let newHistory = new Set(this.localHistory);
 	newHistory.add(newBoard.code());
 
-	let result = State.fromBoard(newBoard, this.depthMap, newHistory, this.globalHistory);
+	let result = State.fromBoard(newBoard, newHistory, this.globalHistory);
 	return result;
     }
 

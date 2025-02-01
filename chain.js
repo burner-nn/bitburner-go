@@ -171,10 +171,81 @@ export class Chain extends BasicChain
 	    }
 	}
 
-	//for(let chain of result)
-	//chain.connectors = chain.connections.map(c => chainData[c]);
+	return result;
+    }
+
+    static distanceMap(board, chains)
+    {
+	let result = new Int8Array(board.data.length);
+	for(let i=0;i<result.length;i++)
+	    result[i] = -1;
+
+	let queue = [];
+
+	for(let chain of chains)
+	    for(let point of chain.points)
+	{
+	    queue.push([point % board.width, Math.floor(point / board.width)]);
+	    result[point] = 0;
+	}
+
+	let newQueue = [];
+	let distance = 0;
+
+	let enqueue = (queue, x, y) => {
+	    if(x < 0 || x >= board.width)
+		return;
+	    if(y < 0 || y >= board.height)
+		return;
+
+	    let id = x + y * board.width;
+	    if(board.getValue(id) != 0)
+		return;
+
+	    if(result[id] != -1)
+		return;
+	    result[id] = distance;
+
+	    queue.push([x, y]);
+	};
+
+	while(queue.length > 0)
+	{
+	    distance++;
+
+	    for(let [x, y] of queue)
+	    {
+		enqueue(newQueue, x-1, y);
+		enqueue(newQueue, x+1, y);
+		enqueue(newQueue, x, y-1);
+		enqueue(newQueue, x, y+1);
+	    }
+
+	    queue = newQueue;
+	    newQueue = [];
+	}
 
 	return result;
     }
 
+    reach()
+    {
+	let map = Chain.distanceMap(this.board, [this]);
+
+	let reachable = 0;
+	let totalDistance = 0;
+
+	for(let point of map)
+	{
+	    if(point <= 0)
+		continue;
+	    reachable++;
+	    totalDistance += (point - 1);
+	}
+
+	if(reachable == 0)
+	    return [0, 0];
+
+	return [totalDistance / reachable / (this.board.width + this.board.height - 3), reachable];
+    }
 }

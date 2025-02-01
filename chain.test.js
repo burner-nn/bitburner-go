@@ -85,3 +85,16 @@ test("applying chain to board", t => {
 		 "__XB_",
 		 "W___B"]);
 });
+
+test("Reach", t => {
+    let board = Board.fromImage(
+	["X__",
+	 "_W_",
+	 "X_X"], "W", true);
+
+    let chain = new Chain(board, 0, 2);
+    chain.points.push(4);
+
+    t.deepEqual(chain.reach(), [1 / 5 / 3, 5]);
+});
+    

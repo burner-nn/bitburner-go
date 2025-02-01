@@ -1,12 +1,11 @@
 import test from 'ava';
 import { Board } from './board.js';
+import { Chain } from './chain.js';
 import { State } from './state.js';
 
 test("Making state", t => {
     let board = Board.fromImage(["X_X", "WWB"], "B", false);
-    let state = State.fromBoard(board, board.depthMap());
-
-    t.deepEqual(state.depthMap, board.depthMap());
+    let state = State.fromBoard(board);
 
     t.is(state.chains.neutral.length, 1);
     t.deepEqual(state.chains.neutral[0].points, [1]);
@@ -50,7 +49,7 @@ test("Chain scoring", t => {
 	"___"], "B", false);
     let state = State.fromBoard(board, null);
 
-    t.deepEqual(state.chainScore(), [1.75, 0.25]);
+    t.true(state.chainScore()[0] > state.chainScore()[1]);
 });
 
 test("Chain owned scoring", t=> {
@@ -60,7 +59,7 @@ test("Chain owned scoring", t=> {
 	"_B_"],	"W", false);
     let state = State.fromBoard(board, null);
 
-    t.deepEqual(state.chainScore(), [3, 3]);
+    t.is(state.chainScore()[0], state.chainScore()[1]);
 });
 
 test("Proper eyes", t => {
@@ -69,7 +68,7 @@ test("Proper eyes", t => {
 	"WX_"], "B", true);
     let state = State.fromBoard(board, null);
 
-    t.deepEqual(state.chainScore(), [0.75, 0.25]);
+    t.true(state.chainScore()[0] > state.chainScore()[1]);
 });
 				
 
@@ -92,7 +91,7 @@ test("Valid moves", t => {
 	"X__X",
 	"BBWW",
 	"____"], "W", false);
-    let state = State.fromBoard(board, board.depthMap());
+    let state = State.fromBoard(board);
 
     t.deepEqual(Array.from(state.validMoves().keys()), [null, 1, 2, 8, 9, 10, 11]);
 });
@@ -188,5 +187,42 @@ test("No t1 eyes", t => {
 	"_____"]);
     let state = State.fromBoard(board);
 
-    t.deepEqual(state.chainScore(), [0, 0.875]);
+    t.is(state.chainScore()[0], 0);
+    t.true(state.chainScore()[1] > 0);
+});
+
+test("Chain scores", t => {
+    let b1 = Board.fromImage([
+	"___",
+	"_W_",
+	"_W_",
+	"WW_",
+	"___"], "W", false);
+    let s1 = State.fromBoard(b1);
+
+    let b2 = Board.fromImage([
+	"___",
+	"_W_",
+	"_W_",
+	"_W_",
+	"_W_"], "W", false);
+    let s2 = State.fromBoard(b2);
+
+    t.is(s2.chainScore()[0] > s1.chainScore()[0], true);
+});
+
+test("Distance map", t=> {
+    let board = Board.fromImage(
+	["_X__B",
+	 "X_W_X",
+	 "___XB",
+	 "_____"], "B", false);
+    let state = State.fromBoard(board);
+
+    let map = Chain.distanceMap(board, state.chains.player);
+    t.deepEqual(Array.from(map),
+		[-1, -1,  2,  1,  0,
+		 -1,  6, -1,  2, -1,
+		 6,   5,  4, -1,  0,
+		 5,   4,  3,  2,  1]);
 });

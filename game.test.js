@@ -15,8 +15,6 @@ test("Making game", t => {
 
     t.deepEqual(game.history, new Set([board.code()]));
     t.is(game.state.globalHistory, game.history);
-    t.deepEqual(game.depthMap, board.depthMap());
-    t.is(game.state.depthMap, game.depthMap);
 });
 
 test("Making game with history", t => {
@@ -104,14 +102,3 @@ test("Going deep", t => {
     t.is(move, 12);
 });
 
-test("Bug", t => {
-    let board = Board.fromImage(
-	["_BXW_",
-	 "BBWWW",
-	 "B_BWW",
-	 "BBBB_",
-	 "____X"], "B", true);
-    let game = Game.fromBoard(board);
-
-    console.log("Move: " + game.findBestMove(3));
-});
